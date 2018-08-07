@@ -140,4 +140,4 @@ include $(BOLOS_SDK)/Makefile.rules
 dep/%.d: %.c Makefile
 
 listvariants:
-	@echo VARIANTS COIN particl particl_testnet
+	@echo VARIANTS COIN particl
