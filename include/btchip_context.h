@@ -1,6 +1,6 @@
 /*******************************************************************************
-*   Ledger Blue - Bitcoin Wallet
-*   (c) 2016 Ledger
+*   Ledger App - Bitcoin Wallet
+*   (c) 2016-2019 Ledger
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
@@ -266,7 +266,7 @@ typedef enum btchip_coin_kind_e {
     COIN_KIND_QTUM,
     COIN_KIND_HCASH,
     COIN_KIND_BITCOIN_PRIVATE,
-    COIN_KIND_ZENCASH,
+    COIN_KIND_HORIZEN,
     COIN_KIND_PARTICL
 } btchip_coin_kind_t;
 

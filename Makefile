@@ -21,13 +21,13 @@ endif
 include $(BOLOS_SDK)/Makefile.defines
 
 APP_PATH = "44'/44'"
-APP_LOAD_FLAGS=--appFlags 0x50 
+APP_LOAD_FLAGS=--appFlags 0x250 
 DEFINES_LIB = 
 APP_LOAD_PARAMS= --curve secp256k1 $(COMMON_LOAD_PARAMS)
 
 APPVERSION_M=1
 APPVERSION_N=2
-APPVERSION_P=7
+APPVERSION_P=8
 APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 
 # simplify for tests
@@ -39,14 +39,14 @@ ifeq ($(COIN),particl)
 # Particl mainnet
 DEFINES   += COIN_P2PKH_VERSION=56 COIN_P2SH_VERSION=60 COIN_FAMILY=1 COIN_COINID=\"Particl\" COIN_COINID_HEADER=\"PARTICL\" COIN_COLOR_HDR=0x02E8AF COIN_COLOR_DB=0x8DAE97 COIN_COINID_NAME=\"Particl\" COIN_COINID_SHORT=\"PART\" COIN_KIND=COIN_KIND_PARTICL HAVE_PART_SUPPORT SIGN_MSG_PREFIX=\"Bitcoin\" PART_PKADDR256_V=0x39
 APPNAME ="Particl"
-APP_LOAD_FLAGS=--appFlags 0x50
+APP_LOAD_FLAGS=--appFlags 0x250
 DEFINES_LIB =
 APP_LOAD_PARAMS= --curve secp256k1 $(COMMON_LOAD_PARAMS) --path $(APP_PATH)
 else ifeq ($(COIN),particl_testnet)
 # Particl testnet
 DEFINES   += COIN_P2PKH_VERSION=118 COIN_P2SH_VERSION=122 COIN_FAMILY=1 COIN_COINID=\"ParticlTest\" COIN_COINID_HEADER=\"PARTICLTEST\" COIN_COLOR_HDR=0x66CCFF COIN_COLOR_DB=0x8DAE97 COIN_COINID_NAME=\"Particl_T\" COIN_COINID_SHORT=\"TPAR\" COIN_KIND=COIN_KIND_PARTICL HAVE_PART_SUPPORT SIGN_MSG_PREFIX=\"Bitcoin\" PART_PKADDR256_V=0x77
 APPNAME ="Particl Test"
-APP_LOAD_FLAGS=--appFlags 0x50
+APP_LOAD_FLAGS=--appFlags 0x250
 DEFINES_LIB =
 APP_LOAD_PARAMS= --curve secp256k1 $(COMMON_LOAD_PARAMS) --path "44'/1'"
 else
@@ -58,11 +58,14 @@ endif
 
 APP_LOAD_PARAMS += $(APP_LOAD_FLAGS)
 DEFINES += $(DEFINES_LIB)
-
 ifeq ($(TARGET_NAME),TARGET_BLUE)
 ICONNAME=blue_app_$(COIN).gif
 else
+	ifeq ($(TARGET_NAME),TARGET_NANOX)
+ICONNAME=nanox_app_$(COIN).gif
+	else
 ICONNAME=nanos_app_$(COIN).gif
+	endif
 endif
 
 ################
@@ -76,8 +79,6 @@ all: default
 
 DEFINES   += OS_IO_SEPROXYHAL IO_SEPROXYHAL_BUFFER_SIZE_B=300
 DEFINES   += HAVE_BAGL HAVE_SPRINTF
-#DEFINES   += HAVE_PRINTF PRINTF=screen_printf
-DEFINES   += PRINTF\(...\)=
 DEFINES   += HAVE_IO_USB HAVE_L4_USBLIB IO_USB_MAX_ENDPOINTS=6 IO_HID_EP_LENGTH=64 HAVE_USB_APDU
 DEFINES   += LEDGER_MAJOR_VERSION=$(APPVERSION_M) LEDGER_MINOR_VERSION=$(APPVERSION_N) LEDGER_PATCH_VERSION=$(APPVERSION_P) TCS_LOADER_PATCH_VERSION=0
 
@@ -90,7 +91,34 @@ DEFINES   += BLE_SEGMENT_SIZE=32 #max MTU, min 20
 DEFINES   += UNUSED\(x\)=\(void\)x
 DEFINES   += APPVERSION=\"$(APPVERSION)\"
 
-DEFINES += CX_COMPLIANCE_141
+WEBUSB_URL     = www.ledgerwallet.com
+DEFINES       += HAVE_WEBUSB WEBUSB_URL_SIZE_B=$(shell echo -n $(WEBUSB_URL) | wc -c) WEBUSB_URL=$(shell echo -n $(WEBUSB_URL) | sed -e "s/./\\\'\0\\\',/g")
+
+ifeq ($(TARGET_NAME),TARGET_NANOX)
+DEFINES       += HAVE_BLE BLE_COMMAND_TIMEOUT_MS=2000
+DEFINES       += HAVE_BLE_APDU # basic ledger apdu transport over BLE
+
+DEFINES       += HAVE_GLO096
+DEFINES       += HAVE_BAGL BAGL_WIDTH=128 BAGL_HEIGHT=64
+DEFINES       += HAVE_BAGL_ELLIPSIS # long label truncation feature
+DEFINES       += HAVE_BAGL_FONT_OPEN_SANS_REGULAR_11PX
+DEFINES       += HAVE_BAGL_FONT_OPEN_SANS_EXTRABOLD_11PX
+DEFINES       += HAVE_BAGL_FONT_OPEN_SANS_LIGHT_16PX
+DEFINES		  += HAVE_UX_FLOW
+endif
+
+# Enabling debug PRINTF
+DEBUG = 0
+ifneq ($(DEBUG),0)
+
+        ifeq ($(TARGET_NAME),TARGET_NANOX)
+                DEFINES   += HAVE_PRINTF PRINTF=mcu_usb_printf
+        else
+                DEFINES   += HAVE_PRINTF PRINTF=screen_printf
+        endif
+else
+        DEFINES   += PRINTF\(...\)=
+endif
 
 ##############
 # Compiler #
@@ -126,6 +154,11 @@ include $(BOLOS_SDK)/Makefile.glyphs
 ### variables processed by the common makefile.rules of the SDK to grab source files and include dirs
 APP_SOURCE_PATH  += src
 SDK_SOURCE_PATH  += lib_stusb lib_stusb_impl lib_u2f qrcode
+
+ifeq ($(TARGET_NAME),TARGET_NANOX)
+SDK_SOURCE_PATH  += lib_blewbxx lib_blewbxx_impl
+SDK_SOURCE_PATH  += lib_ux
+endif
 
 load: all
 	python -m ledgerblue.loadApp $(APP_LOAD_PARAMS)

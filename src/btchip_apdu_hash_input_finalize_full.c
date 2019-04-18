@@ -1,6 +1,6 @@
 /*******************************************************************************
-*   Ledger Blue - Bitcoin Wallet
-*   (c) 2016 Ledger
+*   Ledger App - Bitcoin Wallet
+*   (c) 2016-2019 Ledger
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
@@ -118,6 +118,7 @@ static bool check_output_displayable() {
             displayable = false;
         }
     }
+
     return displayable;
 }
 
@@ -208,7 +209,7 @@ static bool handle_output_state() {
 
             cx_hash(&btchip_context_D.transactionHashFull.header, 0,
                 btchip_context_D.currentOutput + amountOfs,
-                discardSize - amountOfs, NULL);
+                discardSize - amountOfs, NULL, 0);
         };
 #endif
 
@@ -336,15 +337,14 @@ unsigned short btchip_apdu_hash_input_finalize_full_internal(
 #else
                 cx_hash(&btchip_context_D.transactionHashFull.header, 0,
                         G_io_apdu_buffer + ISO_OFFSET_CDATA + hashOffset,
-                        apduLength - hashOffset, NULL);
+                        apduLength - hashOffset, NULL, 32);
 #endif
             }
-
 
             if (btchip_context_D.transactionContext.firstSigned) {
                 if ((btchip_context_D.currentOutputOffset + apduLength) >
                     sizeof(btchip_context_D.currentOutput)) {
-                    L_DEBUG_APP(("Output is too long to be checked\n"));
+                    PRINTF("Output is too long to be checked\n");
                     sw = BTCHIP_SW_INCORRECT_DATA;
                     goto discardTransaction;
                 }
@@ -384,7 +384,7 @@ unsigned short btchip_apdu_hash_input_finalize_full_internal(
                     cx_hash(
                         &btchip_context_D.transactionHashAuthorization.header,
                         0, G_io_apdu_buffer + ISO_OFFSET_CDATA, apduLength,
-                        NULL);
+                        NULL, 0);
                 }
                 G_io_apdu_buffer[0] = 0x00;
                 btchip_context_D.outLength = 1;
@@ -395,7 +395,7 @@ unsigned short btchip_apdu_hash_input_finalize_full_internal(
             if (!btchip_context_D.usingSegwit) {
                 cx_hash(&btchip_context_D.transactionHashAuthorization.header,
                         CX_LAST, G_io_apdu_buffer + ISO_OFFSET_CDATA,
-                        apduLength, authorizationHash);
+                        apduLength, authorizationHash, 32);
             }
 
             if (btchip_context_D.usingSegwit) {
@@ -403,26 +403,25 @@ unsigned short btchip_apdu_hash_input_finalize_full_internal(
                     cx_hash(&btchip_context_D.transactionHashFull.header,
                             CX_LAST,
                             btchip_context_D.segwit.cache.hashedOutputs, 0,
-                            btchip_context_D.segwit.cache.hashedOutputs);
+                            btchip_context_D.segwit.cache.hashedOutputs, 32);
                     cx_sha256_init(&btchip_context_D.transactionHashFull);
                     cx_hash(&btchip_context_D.transactionHashFull.header,
                             CX_LAST,
                             btchip_context_D.segwit.cache.hashedOutputs,
                             sizeof(btchip_context_D.segwit.cache.hashedOutputs),
-                            btchip_context_D.segwit.cache.hashedOutputs);
-                    L_DEBUG_BUF(("hashOutputs\n",
-                                 btchip_context_D.segwit.cache.hashedOutputs,
-                                 32));
+                            btchip_context_D.segwit.cache.hashedOutputs, 32);
+                    PRINTF("hashOutputs\n", 32,
+                                 btchip_context_D.segwit.cache.hashedOutputs);
                     cx_hash(
                         &btchip_context_D.transactionHashAuthorization.header,
-                        CX_LAST, G_io_apdu_buffer, 0, authorizationHash);
+                        CX_LAST, G_io_apdu_buffer, 0, authorizationHash, 32);
                 } else {
                     cx_hash(
                         &btchip_context_D.transactionHashAuthorization.header,
                         CX_LAST,
-                        (unsigned char WIDE *)&btchip_context_D.segwit.cache,
+                        (unsigned char *)&btchip_context_D.segwit.cache,
                         sizeof(btchip_context_D.segwit.cache),
-                        authorizationHash);
+                        authorizationHash, 32);
                 }
             }
 
@@ -464,8 +463,7 @@ unsigned short btchip_apdu_hash_input_finalize_full_internal(
                         authorizationHash,
                         transactionSummary->authorizationHash,
                         sizeof(transactionSummary->authorizationHash))) {
-                    L_DEBUG_APP(
-                        ("Authorization hash not matching, aborting\n"));
+                    PRINTF("Authorization hash not matching, aborting\n");
                     sw = BTCHIP_SW_CONDITIONS_OF_USE_NOT_SATISFIED;
                 discardTransaction:
                     CLOSE_TRY;
@@ -477,7 +475,7 @@ unsigned short btchip_apdu_hash_input_finalize_full_internal(
                 !btchip_context_D.segwitParsedOnce) {
                 // This input cannot be signed when using segwit - just restart.
                 btchip_context_D.segwitParsedOnce = 1;
-                L_DEBUG_APP(("Segwit parsed once\n"));
+                PRINTF("Segwit parsed once\n");
                 btchip_context_D.transactionContext.transactionState =
                     BTCHIP_TRANSACTION_NONE;
             } else {
@@ -506,6 +504,7 @@ unsigned short btchip_apdu_hash_input_finalize_full_internal(
 }
 
 unsigned short btchip_apdu_hash_input_finalize_full() {
+    PRINTF("state=%d\n", btchip_context_D.outputParsingState);
     unsigned short sw = btchip_apdu_hash_input_finalize_full_internal(
         &btchip_context_D.transactionSummary);
     if (btchip_context_D.io_flags & IO_ASYNCH_REPLY) {
@@ -534,6 +533,7 @@ unsigned short btchip_apdu_hash_input_finalize_full() {
 unsigned char btchip_bagl_user_action(unsigned char confirming) {
     unsigned short sw = BTCHIP_SW_OK;
     // confirm and finish the apdu exchange //spaghetti
+
     if (confirming) {
         // Check if all inputs have been confirmed
 
@@ -596,7 +596,7 @@ unsigned char btchip_bagl_user_action(unsigned char confirming) {
                 !btchip_context_D.segwitParsedOnce) {
                 // This input cannot be signed when using segwit - just restart.
                 btchip_context_D.segwitParsedOnce = 1;
-                L_DEBUG_APP(("Segwit parsed once\n"));
+                PRINTF("Segwit parsed once\n");
                 btchip_context_D.transactionContext.transactionState =
                     BTCHIP_TRANSACTION_NONE;
             } else {

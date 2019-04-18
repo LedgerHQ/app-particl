@@ -1,6 +1,6 @@
 /*******************************************************************************
-*   Ledger Blue - Bitcoin Wallet
-*   (c) 2016 Ledger
+*   Ledger App - Bitcoin Wallet
+*   (c) 2016-2019 Ledger
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
@@ -32,8 +32,7 @@ unsigned short btchip_apdu_hash_sign() {
     unsigned long int lockTime;
     uint32_t sighashType;
     unsigned char dataBuffer[8];
-    unsigned char hash1[32];
-    unsigned char hash2[32];
+    unsigned char hash[32];
     unsigned char authorizationLength;
     unsigned char *parameters = G_io_apdu_buffer + ISO_OFFSET_CDATA;
     btchip_transaction_summary_t
@@ -71,12 +70,11 @@ unsigned short btchip_apdu_hash_sign() {
             btchip_set_check_internal_structure_integrity(0);
             if (btchip_context_D.transactionContext.transactionState !=
                 BTCHIP_TRANSACTION_SIGN_READY) {
-                L_DEBUG_APP(
-                    ("Invalid transaction state %d\n",
-                     btchip_context_D.transactionContext.transactionState));
+                PRINTF("Invalid transaction state %d\n", btchip_context_D.transactionContext.transactionState);
                 sw = BTCHIP_SW_CONDITIONS_OF_USE_NOT_SATISFIED;
                 goto discardTransaction;
             }
+
 
             // Read parameters
             if (G_io_apdu_buffer[ISO_OFFSET_CDATA] > MAX_BIP32_PATH) {
@@ -99,7 +97,7 @@ unsigned short btchip_apdu_hash_sign() {
                   BTCHIP_OPTION_FREE_SIGHASHTYPE) == 0)) {
                 // if bitcoin cash OR forkid is set, then use the fork id
                 if (G_coin_config->kind == COIN_KIND_BITCOIN_CASH ||
-                    G_coin_config->forkid) {
+                    (G_coin_config->forkid)) {
 #define SIGHASH_FORKID 0x40
                     if (sighashType != (SIGHASH_ALL | SIGHASH_FORKID)) {
                         sw = BTCHIP_SW_INCORRECT_DATA;
@@ -138,21 +136,20 @@ unsigned short btchip_apdu_hash_sign() {
 
             btchip_write_u32_le(dataBuffer, lockTime);
             btchip_write_u32_le(dataBuffer + 4, sighashType);
-            L_DEBUG_BUF(
-                ("Finalize hash with\n", dataBuffer, sizeof(dataBuffer)));
+                PRINTF("Finalize hash with\n%.*H\n", sizeof(dataBuffer), dataBuffer);
 
             cx_hash(&btchip_context_D.transactionHashFull.header, CX_LAST,
-                    dataBuffer, sizeof(dataBuffer), hash1);
-            L_DEBUG_BUF(("Hash1\n", hash1, sizeof(hash1)));
+                    dataBuffer, sizeof(dataBuffer), hash, 32);
+                PRINTF("Hash1\n%.*H\n", sizeof(hash), hash);
 
             // Rehash
             cx_sha256_init(&localHash);
-            cx_hash(&localHash.header, CX_LAST, hash1, sizeof(hash1), hash2);
-            L_DEBUG_BUF(("Hash2\n", hash2, sizeof(hash2)));
+            cx_hash(&localHash.header, CX_LAST, hash, sizeof(hash), hash, 32);
+            PRINTF("Hash2\n", sizeof(hash), hash);
 
             // Sign
             btchip_signverify_finalhash(
-                &btchip_private_key_D, 1, hash2, sizeof(hash2),
+                &btchip_private_key_D, 1, hash, sizeof(hash),
                 G_io_apdu_buffer, sizeof(G_io_apdu_buffer),
                 ((N_btchip.bkp.config.options &
                   BTCHIP_OPTION_DETERMINISTIC_SIGNATURE) != 0));

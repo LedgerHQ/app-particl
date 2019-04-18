@@ -1,6 +1,6 @@
 /*******************************************************************************
-*   Ledger Blue - Bitcoin Wallet
-*   (c) 2016 Ledger
+*   Ledger App - Bitcoin Wallet
+*   (c) 2016-2019 Ledger
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
@@ -91,6 +91,7 @@ unsigned short btchip_apdu_get_wallet_public_key() {
 
     btchip_private_derive_keypair(keyPath, 1, chainCode);
 
+
     G_io_apdu_buffer[0] = 65;
 
     // Then encode it
@@ -144,7 +145,7 @@ unsigned short btchip_apdu_get_wallet_public_key() {
         }
     }
     G_io_apdu_buffer[66] = keyLength;
-    L_DEBUG_APP(("Length %d\n", keyLength));
+    PRINTF("Length %d\n", keyLength);
     if (!uncompressedPublicKeys) {
         // Restore for the full key component
         G_io_apdu_buffer[1] = 0x04;

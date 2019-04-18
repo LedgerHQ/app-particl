@@ -1,6 +1,6 @@
 /*******************************************************************************
- *   Ledger Blue - Bitcoin Wallet
- *   (c) 2016 Ledger
+ *   Ledger App - Bitcoin Wallet
+ *   (c) 2016-2019 Ledger
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -122,7 +122,13 @@ unsigned int io_seproxyhal_touch_display_ok(const bagl_element_t *e);
 unsigned int io_seproxyhal_touch_exit(const bagl_element_t *e);
 void ui_idle(void);
 
+#ifdef TARGET_NANOX
+#include "ux.h"
+ux_state_t G_ux;
+bolos_ux_params_t G_ux_params;
+#else // TARGET_NANOX
 ux_state_t ux;
+#endif // TARGET_NANOX
 
 // display stepped screens
 unsigned int ux_step;
@@ -1676,16 +1682,6 @@ unsigned int ui_verify_message_prepro(const bagl_element_t *element) {
 
 #endif // #if defined(TARGET_NANOS)
 
-void ui_idle(void) {
-    ux_step_count = 0;
-
-#if defined(TARGET_BLUE)
-    UX_DISPLAY(ui_idle_blue, ui_idle_blue_prepro);
-#elif defined(TARGET_NANOS)
-    UX_MENU_DISPLAY(0, menu_main, NULL);
-#endif // #if TARGET_ID
-}
-
 #ifdef TARGET_BLUE
 
 unsigned int io_seproxyhal_touch_exit(const bagl_element_t *e) {
@@ -1891,6 +1887,294 @@ void ui_transaction_p2sh_blue_init(void) {
     ui_transaction_blue_init();
 }
 #endif // #if defined(TARGET_BLUE)
+
+
+#if defined(TARGET_NANOX)
+
+//////////////////////////////////////////////////////////////////////
+UX_STEP_NOCB(
+    ux_idle_flow_1_step,
+    nn, 
+    {
+      "Application",
+      "is ready",
+    });
+UX_STEP_NOCB(
+    ux_idle_flow_3_step, 
+    bn,
+    {
+      "Version",
+      APPVERSION,
+    });
+UX_STEP_VALID(
+    ux_idle_flow_4_step,
+    pb,
+    os_sched_exit(-1),
+    {
+      &C_icon_dashboard_x,
+      "Quit",
+    });
+UX_FLOW(ux_idle_flow,
+  &ux_idle_flow_1_step,
+  &ux_idle_flow_3_step,
+  &ux_idle_flow_4_step
+);
+
+//////////////////////////////////////////////////////////////////////
+UX_STEP_NOCB(
+    ux_sign_flow_1_step,
+    pnn,
+    {
+      &C_icon_certificate,
+      "Sign",
+      "message",
+    });
+UX_STEP_NOCB(
+    ux_sign_flow_2_step,
+    bnnn_paging,
+    {
+      .title = "Message hash",
+      .text = vars.tmp.fullAddress,
+    });
+UX_STEP_VALID(
+    ux_sign_flow_3_step,
+    pbb,
+    io_seproxyhal_touch_message_signature_verify_ok(NULL),
+    {
+      &C_icon_validate_14,
+      "Sign",
+      "message",
+    });
+UX_STEP_VALID(
+    ux_sign_flow_4_step,
+    pbb,
+    io_seproxyhal_touch_message_signature_verify_cancel(NULL),
+    {
+      &C_icon_crossmark,
+      "Cancel",
+      "signature",
+    });
+
+UX_FLOW(ux_sign_flow,
+  &ux_sign_flow_1_step,
+  &ux_sign_flow_2_step,
+  &ux_sign_flow_3_step,
+  &ux_sign_flow_4_step
+);
+
+//////////////////////////////////////////////////////////////////////
+
+UX_STEP_NOCB(ux_confirm_full_flow_1_step,
+    pnn,
+    {
+      &C_icon_eye,
+      "Review",
+      "transaction",
+    });
+UX_STEP_NOCB(
+    ux_confirm_full_flow_2_step,
+    bnnn_paging,
+    {
+      .title = "Amount",
+      .text = vars.tmp.fullAmount
+    });
+UX_STEP_NOCB(
+    ux_confirm_full_flow_3_step,
+    bnnn_paging,
+    {
+      .title = "Address",
+      .text = vars.tmp.fullAddress,
+    });
+UX_STEP_NOCB(
+    ux_confirm_full_flow_4_step,
+    bnnn_paging,
+    {
+      .title = "Fees",
+      .text = vars.tmp.feesAmount,
+    });
+UX_STEP_VALID(
+    ux_confirm_full_flow_5_step,
+    pbb,
+    io_seproxyhal_touch_verify_ok(NULL),
+    {
+      &C_icon_validate_14,
+      "Accept",
+      "and send",
+    });
+UX_STEP_VALID(
+    ux_confirm_full_flow_6_step,
+    pb,
+    io_seproxyhal_touch_verify_cancel(NULL),
+    {
+      &C_icon_crossmark,
+      "Reject",
+    });
+// confirm_full: confirm transaction / Amount: fullAmount / Address: fullAddress / Fees: feesAmount
+UX_FLOW(ux_confirm_full_flow,
+  &ux_confirm_full_flow_1_step,
+  &ux_confirm_full_flow_2_step,
+  &ux_confirm_full_flow_3_step,
+  &ux_confirm_full_flow_4_step,
+  &ux_confirm_full_flow_5_step,
+  &ux_confirm_full_flow_6_step
+);
+
+//////////////////////////////////////////////////////////////////////
+
+UX_STEP_NOCB(
+    ux_confirm_single_flow_1_step, 
+    pnn,
+    {
+      &C_icon_eye,
+      "Review",
+      "transaction"
+    });
+UX_STEP_NOCB(
+    ux_confirm_single_flow_2_step, 
+    bnnn_paging,
+    {
+      .title = "Amount",
+      .text = vars.tmp.fullAmount,
+    });
+UX_STEP_NOCB(
+    ux_confirm_single_flow_3_step, 
+    bnnn_paging,
+    {
+      .title = "Address",
+      .text = vars.tmp.fullAddress,
+    });
+UX_STEP_NOCB(
+    ux_confirm_single_flow_4_step, 
+    bnnn_paging, 
+    {
+      .title = "Fees",
+      .text = vars.tmp.feesAmount,
+    });
+UX_STEP_VALID(
+    ux_confirm_single_flow_5_step,
+    pb,
+    io_seproxyhal_touch_verify_ok(NULL),
+    {
+      &C_icon_validate_14,
+      "Accept",
+    });
+UX_STEP_VALID(
+    ux_confirm_single_flow_6_step,
+    pb,
+    io_seproxyhal_touch_verify_cancel(NULL),
+    {
+      &C_icon_crossmark,
+      "Reject",
+    });
+// confirm_single: confirm output #x(feesAmount) / Amount: fullAmount / Address: fullAddress
+UX_FLOW(ux_confirm_single_flow,
+  &ux_confirm_single_flow_1_step,
+  &ux_confirm_single_flow_2_step,
+  &ux_confirm_single_flow_3_step,
+  &ux_confirm_single_flow_4_step,
+  &ux_confirm_single_flow_5_step,
+  &ux_confirm_single_flow_6_step
+);
+
+//////////////////////////////////////////////////////////////////////
+
+UX_STEP_NOCB(
+    ux_finalize_flow_1_step, 
+    pnn, 
+    {
+      &C_icon_eye,
+      "Review",
+      "transaction"
+    });
+UX_STEP_NOCB(
+    ux_finalize_flow_4_step,
+    bnnn_paging,
+    {
+      .title = "Fees",
+      .text = vars.tmp.feesAmount,
+    });
+UX_STEP_VALID(
+    ux_finalize_flow_5_step,
+    pbb,
+    io_seproxyhal_touch_verify_ok(NULL),
+    {
+      &C_icon_validate_14,
+      "Accept",
+      "and send"
+    });
+UX_STEP_VALID(
+    ux_finalize_flow_6_step,
+    pb,
+    io_seproxyhal_touch_verify_cancel(NULL),
+    {
+      &C_icon_crossmark,
+      "Reject",
+    });
+// finalize: confirm transaction / Fees: feesAmount
+UX_FLOW(ux_finalize_flow,
+  &ux_finalize_flow_1_step,
+  &ux_finalize_flow_4_step,
+  &ux_finalize_flow_5_step,
+  &ux_finalize_flow_6_step
+);
+
+//////////////////////////////////////////////////////////////////////
+UX_STEP_NOCB(
+    ux_display_public_flow_4_step,
+    pnn, 
+    {
+      &C_icon_validate_14,
+      "Approve derivation",
+      "path",
+    });
+UX_STEP_NOCB(
+    ux_display_public_flow_5_step, 
+    bnnn_paging,
+    {
+      .title = "Address",
+      .text = G_io_apdu_buffer+200,
+    });
+UX_STEP_VALID(
+    ux_display_public_flow_6_step, 
+    pb,
+    io_seproxyhal_touch_display_ok(NULL),
+    {
+      &C_icon_validate_14,
+      "Approve",
+    });
+UX_STEP_VALID(
+    ux_display_public_flow_7_step, 
+    pb,
+    io_seproxyhal_touch_display_cancel(NULL),
+    {
+      &C_icon_crossmark,
+      "Reject",
+    });
+
+UX_FLOW(ux_display_public_flow,
+  &ux_display_public_flow_5_step,
+  &ux_display_public_flow_6_step,
+  &ux_display_public_flow_7_step
+);
+
+
+#endif // #if defined(TARGET_NANOX)
+
+void ui_idle(void) {
+    ux_step_count = 0;
+
+#if defined(TARGET_BLUE)
+    UX_DISPLAY(ui_idle_blue, ui_idle_blue_prepro);
+#elif defined(TARGET_NANOS)
+    UX_MENU_DISPLAY(0, menu_main, NULL);
+#elif defined(TARGET_NANOX)
+    // reserve a display stack slot if none yet
+    if(G_ux.stack_count == 0) {
+        ux_stack_push();
+    }
+    ux_flow_init(0, ux_idle_flow, NULL);
+#endif // #if TARGET_ID
+}
 
 // override point, but nothing more to do
 void io_seproxyhal_display(const bagl_element_t *element) {
@@ -2383,7 +2667,7 @@ error:
 #define HASH_LENGTH 4
 uint8_t prepare_message_signature() {
     cx_hash(&btchip_context_D.transactionHashAuthorization.header, CX_LAST,
-            vars.tmp.fullAmount, 0, vars.tmp.fullAmount);
+            vars.tmp.fullAmount, 0, vars.tmp.fullAmount, 32);
     snprintf(vars.tmp.fullAddress, sizeof(vars.tmp.fullAddress), "%.*H...%.*H",
              8, vars.tmp.fullAmount, 8, vars.tmp.fullAmount + 32 - 8);
     return 1;
@@ -2400,7 +2684,9 @@ unsigned int btchip_bagl_confirm_full_output() {
     ux_step = 0;
     ux_step_count = 4;
     UX_DISPLAY(ui_verify_nanos, ui_verify_prepro);
-#endif // #if TARGET_ID
+#elif defined(TARGET_NANOX)
+    ux_flow_init(0, ux_confirm_full_flow, NULL);
+#endif // TARGET_NANOX
     return 1;
 }
 
@@ -2427,7 +2713,9 @@ unsigned int btchip_bagl_confirm_single_output() {
     ux_step = 0;
     ux_step_count = 3;
     UX_DISPLAY(ui_verify_output_nanos, ui_verify_output_prepro);
-#endif // #if TARGET_ID
+#elif defined(TARGET_NANOX)
+    ux_flow_init(0, ux_confirm_single_flow, NULL);
+#endif // TARGET_NANOX
     return 1;
 }
 
@@ -2442,7 +2730,9 @@ unsigned int btchip_bagl_finalize_tx() {
     ux_step = 0;
     ux_step_count = 2;
     UX_DISPLAY(ui_finalize_nanos, ui_finalize_prepro);
-#endif // #if TARGET_ID
+#elif defined(TARGET_NANOX)
+    ux_flow_init(0, ux_finalize_flow, NULL);
+#endif // TARGET_NANOX
     return 1;
 }
 
@@ -2457,7 +2747,9 @@ void btchip_bagl_confirm_message_signature() {
     ux_step = 0;
     ux_step_count = 2;
     UX_DISPLAY(ui_verify_message_signature_nanos, ui_verify_message_prepro);
-#endif // #if TARGET_ID
+#elif defined(TARGET_NANOX)
+    ux_flow_init(0, ux_sign_flow, NULL);
+#endif // TARGET_NANOX
 }
 
 unsigned int btchip_bagl_display_public_key() {
@@ -2502,6 +2794,8 @@ unsigned int btchip_bagl_display_public_key() {
     ux_step = 0;
     ux_step_count = 2;
     UX_DISPLAY(ui_display_address_nanos, ui_display_address_nanos_prepro);
+#elif defined(TARGET_NANOX)
+    ux_flow_init(0, ux_display_public_flow, NULL);
 #endif // #if TARGET_ID
     return 1;
 }
@@ -2615,14 +2909,21 @@ __attribute__((section(".boot"))) int main(int arg0) {
             TRY {
                 io_seproxyhal_init();
 
+#ifdef TARGET_NANOX
+                // grab the current plane mode setting
+                G_io_app.plane_mode = os_setting_get(OS_SETTING_PLANEMODE, NULL, 0);
+#endif // TARGET_NANOX
+
                 btchip_context_init();
 
                 USB_power(0);
                 USB_power(1);
 
+                ui_idle();
+
 #ifdef HAVE_BLE
                 BLE_power(0, NULL);
-                BLE_power(1, "Ledger Wallet");
+                BLE_power(1, "Nano X");
 #endif // HAVE_BLE
 
 #if defined(TARGET_BLUE)
@@ -2631,15 +2932,15 @@ __attribute__((section(".boot"))) int main(int arg0) {
                 UX_SET_STATUS_BAR_COLOR(0xFFFFFF, G_coin_config->color_header);
 #endif // TARGET_ID
 
-                ui_idle();
-
                 app_main();
             }
             CATCH(EXCEPTION_IO_RESET) {
                 // reset IO and UX
+                CLOSE_TRY;
                 continue;
             }
             CATCH_ALL {
+                CLOSE_TRY;
                 break;
             }
             FINALLY {
