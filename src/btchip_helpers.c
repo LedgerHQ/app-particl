@@ -290,6 +290,7 @@ unsigned short btchip_pk256_to_encoded_base58(
     unsigned char checksumBuffer[32];
     cx_sha256_t hash;
     unsigned char versionSize = (version > 255 ? 2 : 1);
+    size_t outputLen;
 
     if (!alreadyHashed) {
         PRINTF("To hash%.*H\n", inlen, in);
@@ -313,7 +314,12 @@ unsigned short btchip_pk256_to_encoded_base58(
 
     PRINTF("Checksum %.*H\n", 4, checksumBuffer);
     os_memmove(tmpBuffer + 32 + versionSize, checksumBuffer, 4);
-    return btchip_encode_base58(tmpBuffer, 36 + versionSize, out, outlen);
+
+    outputLen = outlen;
+    if (btchip_encode_base58(tmpBuffer, 36 + versionSize, out, &outputLen) < 0) {
+        THROW(EXCEPTION);
+    }
+    return outputLen;
 }
 #endif
 void btchip_swap_bytes(unsigned char *target, unsigned char *source,
