@@ -43,9 +43,6 @@ static void btchip_apdu_hash_input_finalize_full_reset(void) {
 }
 
 static bool check_output_displayable() {
-#if HAVE_PART_SUPPORT
-    return true; // display all outputs
-#endif
     bool displayable = true;
     unsigned char amount[8], isOpReturn, isP2sh, isNativeSegwit, j,
         nullAmount = 1;
@@ -71,6 +68,7 @@ static bool check_output_displayable() {
         btchip_output_script_is_op_create(btchip_context_D.currentOutput + 8);
     isOpCall =
         btchip_output_script_is_op_call(btchip_context_D.currentOutput + 8);
+    #ifndef HAVE_PART_SUPPORT
     if (((G_coin_config->kind == COIN_KIND_QTUM) &&
          !btchip_output_script_is_regular(btchip_context_D.currentOutput + 8) &&
          !isP2sh && !(nullAmount && isOpReturn) && !isOpCreate && !isOpCall) ||
@@ -80,6 +78,7 @@ static bool check_output_displayable() {
         PRINTF("Error : Unrecognized input script");
         THROW(EXCEPTION);
     }
+    #endif
     if (btchip_context_D.tmpCtx.output.changeInitialized && !isOpReturn) {
         bool changeFound = false;
         unsigned char addressOffset =
@@ -325,6 +324,7 @@ unsigned short btchip_apdu_hash_input_finalize_full_internal(
                     sizeof(transactionSummary->summarydata.changeAddress));
                 btchip_context_D.tmpCtx.output.changeInitialized = 1;
                 btchip_context_D.tmpCtx.output.changeAccepted = 0;
+
                 goto return_OK;
             }
 
