@@ -1894,13 +1894,13 @@ void ui_transaction_p2sh_blue_init(void) {
 //////////////////////////////////////////////////////////////////////
 UX_STEP_NOCB(
     ux_idle_flow_1_step,
-    nn, 
+    nn,
     {
       "Application",
       "is ready",
     });
 UX_STEP_NOCB(
-    ux_idle_flow_3_step, 
+    ux_idle_flow_3_step,
     bn,
     {
       "Version",
@@ -2022,7 +2022,7 @@ UX_FLOW(ux_confirm_full_flow,
 //////////////////////////////////////////////////////////////////////
 
 UX_STEP_NOCB(
-    ux_confirm_single_flow_1_step, 
+    ux_confirm_single_flow_1_step,
     pnn,
     {
       &C_icon_eye,
@@ -2030,22 +2030,22 @@ UX_STEP_NOCB(
       "transaction"
     });
 UX_STEP_NOCB(
-    ux_confirm_single_flow_2_step, 
+    ux_confirm_single_flow_2_step,
     bnnn_paging,
     {
       .title = "Amount",
       .text = vars.tmp.fullAmount,
     });
 UX_STEP_NOCB(
-    ux_confirm_single_flow_3_step, 
+    ux_confirm_single_flow_3_step,
     bnnn_paging,
     {
       .title = "Address",
       .text = vars.tmp.fullAddress,
     });
 UX_STEP_NOCB(
-    ux_confirm_single_flow_4_step, 
-    bnnn_paging, 
+    ux_confirm_single_flow_4_step,
+    bnnn_paging,
     {
       .title = "Fees",
       .text = vars.tmp.feesAmount,
@@ -2079,8 +2079,8 @@ UX_FLOW(ux_confirm_single_flow,
 //////////////////////////////////////////////////////////////////////
 
 UX_STEP_NOCB(
-    ux_finalize_flow_1_step, 
-    pnn, 
+    ux_finalize_flow_1_step,
+    pnn,
     {
       &C_icon_eye,
       "Review",
@@ -2121,21 +2121,21 @@ UX_FLOW(ux_finalize_flow,
 //////////////////////////////////////////////////////////////////////
 UX_STEP_NOCB(
     ux_display_public_flow_4_step,
-    pnn, 
+    pnn,
     {
       &C_icon_validate_14,
       "Approve derivation",
       "path",
     });
 UX_STEP_NOCB(
-    ux_display_public_flow_5_step, 
+    ux_display_public_flow_5_step,
     bnnn_paging,
     {
       .title = "Address",
       .text = G_io_apdu_buffer+200,
     });
 UX_STEP_VALID(
-    ux_display_public_flow_6_step, 
+    ux_display_public_flow_6_step,
     pb,
     io_seproxyhal_touch_display_ok(NULL),
     {
@@ -2143,7 +2143,7 @@ UX_STEP_VALID(
       "Approve",
     });
 UX_STEP_VALID(
-    ux_display_public_flow_7_step, 
+    ux_display_public_flow_7_step,
     pb,
     io_seproxyhal_touch_display_cancel(NULL),
     {
@@ -2309,18 +2309,37 @@ uint8_t prepare_single_output() {
 #ifdef HAVE_PART_SUPPORT
     bool amountZero = true;
     for (size_t k = 0; k < 8; ++k) {
-        if (amount[k] == 0)
+        if (amount[k] == 0) {
             continue;
+        }
         amountZero = false;
         break;
-    };
-    if (amountZero)
-    {
-        snprintf(vars.tmp.fullAddress, 65, "DATA %dB", btchip_context_D.currentOutput[offset]);
+    }
+    if (amountZero) {
+        snprintf(vars.tmp.fullAddress, 43, "DATA %dB", btchip_context_D.currentOutput[offset]);
+    } else
+    if (btchip_output_script_is_256_hash(btchip_context_D.currentOutput +
+                                         offset)) {
+        version = PART_PKADDR256_V;
+        versionSize = 1;
+        addressOffset = offset + 4;
+        address[0] = version;
+        os_memmove(address + versionSize,
+                   btchip_context_D.currentOutput + addressOffset, 32);
+
+        // Prepare address
+        textSize = btchip_pk256_to_encoded_base58(
+            address, 32 + versionSize, (unsigned char*)tmp, sizeof(tmp),
+            version, 1);
+        tmp[textSize] = '\0';
+
+        strncat(vars.tmp.fullAddress, tmp, 16);
+        strcat(vars.tmp.fullAddress, "~");
+        strncat(vars.tmp.fullAddress, tmp+textSize-16, 16);
+
     } else
     if (btchip_output_script_is_coldstake(btchip_context_D.currentOutput +
-                                          offset))
-    {
+                                          offset)) {
         version = btchip_context_D.payToAddressVersion;
         versionSize = 1;
         addressOffset = offset + 6;
@@ -2330,7 +2349,7 @@ uint8_t prepare_single_output() {
 
         // Prepare address
         textSize = btchip_public_key_to_encoded_base58(
-            address, 20 + versionSize, (unsigned char *)tmp, sizeof(tmp),
+            address, 20 + versionSize, (unsigned char*)tmp, sizeof(tmp),
             version, 1);
         tmp[textSize] = '\0';
         strcpy(vars.tmp.fullAddress, "STK ");
@@ -2345,7 +2364,7 @@ uint8_t prepare_single_output() {
 
         // Prepare address
         textSize = btchip_pk256_to_encoded_base58(
-            address, 32 + versionSize, (unsigned char *)tmp, sizeof(tmp),
+            address, 32 + versionSize, (unsigned char*)tmp, sizeof(tmp),
             version, 1);
         tmp[textSize] = '\0';
 

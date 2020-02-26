@@ -46,7 +46,7 @@ static bool check_output_displayable() {
     bool displayable = true;
     unsigned char amount[8], isOpReturn, isP2sh, isNativeSegwit, j,
         nullAmount = 1;
-    unsigned char isOpCreate, isOpCall;
+    unsigned char isOpCreate, isOpCall, isColdStake, isP2256H;
 
     for (j = 0; j < 8; j++) {
         if (btchip_context_D.currentOutput[j] != 0) {
@@ -68,17 +68,22 @@ static bool check_output_displayable() {
         btchip_output_script_is_op_create(btchip_context_D.currentOutput + 8);
     isOpCall =
         btchip_output_script_is_op_call(btchip_context_D.currentOutput + 8);
-    #ifndef HAVE_PART_SUPPORT
+
+    isColdStake =
+        btchip_output_script_is_coldstake(btchip_context_D.currentOutput + 8);
+    isP2256H =
+        btchip_output_script_is_256_hash(btchip_context_D.currentOutput + 8);
+
     if (((G_coin_config->kind == COIN_KIND_QTUM) &&
          !btchip_output_script_is_regular(btchip_context_D.currentOutput + 8) &&
          !isP2sh && !(nullAmount && isOpReturn) && !isOpCreate && !isOpCall) ||
         (!(G_coin_config->kind == COIN_KIND_QTUM) &&
          !btchip_output_script_is_regular(btchip_context_D.currentOutput + 8) &&
-         !isP2sh && !(nullAmount && isOpReturn))) {
+         !isP2sh && !isColdStake && !isP2256H && !(nullAmount && isOpReturn))) {
         PRINTF("Error : Unrecognized input script");
         THROW(EXCEPTION);
     }
-    #endif
+
     if (btchip_context_D.tmpCtx.output.changeInitialized && !isOpReturn) {
         bool changeFound = false;
         unsigned char addressOffset =
