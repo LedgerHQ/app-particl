@@ -81,4 +81,7 @@ int bech32_encode(char *output, const char *hrp, const uint8_t *data,
 int bech32_decode(char *hrp, uint8_t *data, size_t *data_len,
                   const char *input);
 
+int cs_addr_encode(char *output, const char *hrp,
+                   const uint8_t *prog, size_t prog_len);
+
 #endif

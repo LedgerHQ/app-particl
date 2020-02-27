@@ -202,3 +202,11 @@ int segwit_addr_decode(int *witver, uint8_t *witdata, size_t *witdata_len,
     *witver = data[0];
     return 1;
 }
+
+int cs_addr_encode(char *output, const char *hrp,
+                   const uint8_t *prog, size_t prog_len) {
+    uint8_t data[65];
+    size_t datalen = 0;
+    convert_bits(data, &datalen, 5, prog, prog_len, 8, 1);
+    return bech32_encode(output, hrp, data, datalen);
+};

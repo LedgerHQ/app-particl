@@ -2340,24 +2340,24 @@ uint8_t prepare_single_output() {
     } else
     if (btchip_output_script_is_coldstake(btchip_context_D.currentOutput +
                                           offset)) {
-        version = btchip_context_D.payToAddressVersion;
-        versionSize = 1;
         addressOffset = offset + 6;
-        address[0] = version;
-        os_memmove(address + versionSize,
+        os_memmove(address,
                    btchip_context_D.currentOutput + addressOffset, 20);
 
         // Prepare address
-        textSize = btchip_public_key_to_encoded_base58(
-            address, 20 + versionSize, (unsigned char*)tmp, sizeof(tmp),
-            version, 1);
-        tmp[textSize] = '\0';
+        if (!cs_addr_encode(tmp, COIN_CS_VERSION, address, 20)) {
+            return 0;
+        }
+        textSize = strlen(tmp);
         strcpy(vars.tmp.fullAddress, "STK ");
         strncat(vars.tmp.fullAddress, tmp, 8);
-        strcat(vars.tmp.fullAddress, "~ / SPD ");
+        strcat(vars.tmp.fullAddress, "~");
+        strncat(vars.tmp.fullAddress, tmp+textSize-5, 5);
+        strcat(vars.tmp.fullAddress, " / SPD ");
 
-        addressOffset += 26;
         version = PART_PKADDR256_V;
+        versionSize = 1;
+        addressOffset += 26;
         address[0] = version;
         os_memmove(address + versionSize,
                    btchip_context_D.currentOutput + addressOffset, 32);
@@ -2370,6 +2370,8 @@ uint8_t prepare_single_output() {
 
         strncat(vars.tmp.fullAddress, tmp, 8);
         strcat(vars.tmp.fullAddress, "~");
+        strncat(vars.tmp.fullAddress, tmp+textSize-5, 5);
+        strcat(vars.tmp.fullAddress, " ");
     } else
 #endif
     if (btchip_output_script_is_op_return(btchip_context_D.currentOutput +
