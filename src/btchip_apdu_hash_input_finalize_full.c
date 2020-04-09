@@ -45,20 +45,21 @@ static void btchip_apdu_hash_input_finalize_full_reset(void) {
 static bool check_output_displayable() {
     bool displayable = true;
     unsigned char amount[8], isOpReturn, isP2sh, isNativeSegwit, j,
-        nullAmount = 1;
+        isZeroAmount = 1;
     unsigned char isOpCreate, isOpCall, isColdStake, isP2256H;
 
-    for (j = 0; j < 8; j++) {
-        if (btchip_context_D.currentOutput[j] != 0) {
-            nullAmount = 0;
-            break;
-        }
-    }
-    if (!nullAmount) {
+    isZeroAmount = btchip_output_is_zero_amount(btchip_context_D.currentOutput);
+    if (isZeroAmount) {
+        // There are no funds attached to this output.
+        // Display it anyways (usually a data output).
+        displayable = true;
+        return displayable;
+    } else {
         btchip_swap_bytes(amount, btchip_context_D.currentOutput, 8);
         transaction_amount_add_be(btchip_context_D.totalOutputAmount,
                                   btchip_context_D.totalOutputAmount, amount);
     }
+
     isOpReturn =
         btchip_output_script_is_op_return(btchip_context_D.currentOutput + 8);
     isP2sh = btchip_output_script_is_p2sh(btchip_context_D.currentOutput + 8);
@@ -76,10 +77,10 @@ static bool check_output_displayable() {
 
     if (((G_coin_config->kind == COIN_KIND_QTUM) &&
          !btchip_output_script_is_regular(btchip_context_D.currentOutput + 8) &&
-         !isP2sh && !(nullAmount && isOpReturn) && !isOpCreate && !isOpCall) ||
+         !isP2sh && !(isZeroAmount && isOpReturn) && !isOpCreate && !isOpCall) ||
         (!(G_coin_config->kind == COIN_KIND_QTUM) &&
          !btchip_output_script_is_regular(btchip_context_D.currentOutput + 8) &&
-         !isP2sh && !isColdStake && !isP2256H && !(nullAmount && isOpReturn))) {
+         !isP2sh && !isColdStake && !isP2256H && !(isZeroAmount && isOpReturn))) {
         PRINTF("Error : Unrecognized input script");
         THROW(EXCEPTION);
     }

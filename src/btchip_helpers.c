@@ -159,6 +159,22 @@ unsigned char btchip_output_script_is_256_hash(unsigned char *buffer) {
         return 1;
     return 0;
 }
+
+// Note: do not skip the first 8 bits here.
+// Pass btchip_context_D.currentOutput
+// Not btchip_context_D.currentOutput + 8!
+unsigned char btchip_output_is_zero_amount(unsigned char *buffer) {
+    unsigned char isZeroAmount = 1;
+    unsigned char j = 1;
+    for (j = 0; j < 8; j++) {
+        if (buffer[j] != 0) {
+            isZeroAmount = 0;
+            break;
+        }
+    }
+
+    return isZeroAmount;
+}
 #endif
 
 unsigned char btchip_rng_u8_modulo(unsigned char modulo) {
