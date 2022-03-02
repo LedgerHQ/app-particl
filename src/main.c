@@ -122,7 +122,7 @@ unsigned int io_seproxyhal_touch_display_ok(const bagl_element_t *e);
 unsigned int io_seproxyhal_touch_exit(const bagl_element_t *e);
 void ui_idle(void);
 
-#ifdef TARGET_NANOX
+#if defined(TARGET_NANOX) || defined(TARGET_NANOS2)
 #include "ux.h"
 ux_state_t G_ux;
 bolos_ux_params_t G_ux_params;
@@ -1889,7 +1889,7 @@ void ui_transaction_p2sh_blue_init(void) {
 #endif // #if defined(TARGET_BLUE)
 
 
-#if defined(TARGET_NANOX)
+#if defined(TARGET_NANOX) || defined(TARGET_NANOS2)
 
 //////////////////////////////////////////////////////////////////////
 UX_STEP_NOCB(
@@ -2167,7 +2167,7 @@ void ui_idle(void) {
     UX_DISPLAY(ui_idle_blue, ui_idle_blue_prepro);
 #elif defined(TARGET_NANOS)
     UX_MENU_DISPLAY(0, menu_main, NULL);
-#elif defined(TARGET_NANOX)
+#elif defined(TARGET_NANOX) || defined(TARGET_NANOS2)
     // reserve a display stack slot if none yet
     if(G_ux.stack_count == 0) {
         ux_stack_push();
@@ -2705,7 +2705,7 @@ unsigned int btchip_bagl_confirm_full_output() {
     ux_step = 0;
     ux_step_count = 4;
     UX_DISPLAY(ui_verify_nanos, ui_verify_prepro);
-#elif defined(TARGET_NANOX)
+#elif defined(TARGET_NANOX) || defined(TARGET_NANOS2)
     ux_flow_init(0, ux_confirm_full_flow, NULL);
 #endif // TARGET_NANOX
     return 1;
@@ -2751,7 +2751,7 @@ unsigned int btchip_bagl_finalize_tx() {
     ux_step = 0;
     ux_step_count = 2;
     UX_DISPLAY(ui_finalize_nanos, ui_finalize_prepro);
-#elif defined(TARGET_NANOX)
+#elif defined(TARGET_NANOX) || defined(TARGET_NANOS2)
     ux_flow_init(0, ux_finalize_flow, NULL);
 #endif // TARGET_NANOX
     return 1;
@@ -2768,7 +2768,7 @@ void btchip_bagl_confirm_message_signature() {
     ux_step = 0;
     ux_step_count = 2;
     UX_DISPLAY(ui_verify_message_signature_nanos, ui_verify_message_prepro);
-#elif defined(TARGET_NANOX)
+#elif defined(TARGET_NANOX) || defined(TARGET_NANOS2)
     ux_flow_init(0, ux_sign_flow, NULL);
 #endif // TARGET_NANOX
 }
@@ -2815,7 +2815,7 @@ unsigned int btchip_bagl_display_public_key() {
     ux_step = 0;
     ux_step_count = 2;
     UX_DISPLAY(ui_display_address_nanos, ui_display_address_nanos_prepro);
-#elif defined(TARGET_NANOX)
+#elif defined(TARGET_NANOX) || defined(TARGET_NANOS2)
     ux_flow_init(0, ux_display_public_flow, NULL);
 #endif // #if TARGET_ID
     return 1;
@@ -2931,10 +2931,10 @@ __attribute__((section(".boot"))) int main(int arg0) {
             TRY {
                 io_seproxyhal_init();
 
-#ifdef TARGET_NANOX
+#ifdef HAVE_BLE
                 // grab the current plane mode setting
                 G_io_app.plane_mode = os_setting_get(OS_SETTING_PLANEMODE, NULL, 0);
-#endif // TARGET_NANOX
+#endif // HAVE_BLE
 
                 btchip_context_init();
 

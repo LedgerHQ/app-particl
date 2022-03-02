@@ -60,12 +60,10 @@ APP_LOAD_PARAMS += $(APP_LOAD_FLAGS)
 DEFINES += $(DEFINES_LIB)
 ifeq ($(TARGET_NAME),TARGET_BLUE)
 ICONNAME=blue_app_$(COIN).gif
-else
-	ifeq ($(TARGET_NAME),TARGET_NANOX)
-ICONNAME=nanox_app_$(COIN).gif
-	else
+else ifeq ($(TARGET_NAME),TARGET_NANOS)
 ICONNAME=nanos_app_$(COIN).gif
-	endif
+else
+ICONNAME=nanox_app_$(COIN).gif
 endif
 
 ################
@@ -98,24 +96,26 @@ DEFINES   += HAVE_WEBUSB WEBUSB_URL_SIZE_B=0 WEBUSB_URL=""
 ifeq ($(TARGET_NAME),TARGET_NANOX)
 DEFINES       += HAVE_BLE BLE_COMMAND_TIMEOUT_MS=2000
 DEFINES       += HAVE_BLE_APDU # basic ledger apdu transport over BLE
+endif
 
+ifneq ($(TARGET_NAME),TARGET_NANOS)
 DEFINES       += HAVE_GLO096
 DEFINES       += HAVE_BAGL BAGL_WIDTH=128 BAGL_HEIGHT=64
 DEFINES       += HAVE_BAGL_ELLIPSIS # long label truncation feature
 DEFINES       += HAVE_BAGL_FONT_OPEN_SANS_REGULAR_11PX
 DEFINES       += HAVE_BAGL_FONT_OPEN_SANS_EXTRABOLD_11PX
 DEFINES       += HAVE_BAGL_FONT_OPEN_SANS_LIGHT_16PX
-DEFINES		  += HAVE_UX_FLOW
+DEFINES       += HAVE_UX_FLOW
 endif
 
 # Enabling debug PRINTF
 DEBUG = 0
 ifneq ($(DEBUG),0)
 
-        ifeq ($(TARGET_NAME),TARGET_NANOX)
-                DEFINES   += HAVE_PRINTF PRINTF=mcu_usb_printf
-        else
+        ifeq ($(TARGET_NAME),TARGET_NANOS)
                 DEFINES   += HAVE_PRINTF PRINTF=screen_printf
+        else
+                DEFINES   += HAVE_PRINTF PRINTF=mcu_usb_printf
         endif
 else
         DEFINES   += PRINTF\(...\)=
@@ -155,10 +155,10 @@ include $(BOLOS_SDK)/Makefile.glyphs
 ### variables processed by the common makefile.rules of the SDK to grab source files and include dirs
 APP_SOURCE_PATH  += src
 SDK_SOURCE_PATH  += lib_stusb lib_stusb_impl lib_u2f qrcode
+SDK_SOURCE_PATH  += lib_ux
 
 ifeq ($(TARGET_NAME),TARGET_NANOX)
 SDK_SOURCE_PATH  += lib_blewbxx lib_blewbxx_impl
-SDK_SOURCE_PATH  += lib_ux
 endif
 
 load: all
